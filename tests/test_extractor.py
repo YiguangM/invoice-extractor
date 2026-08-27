@@ -32,6 +32,24 @@ Date: January 5, 2026
 Total Due: AED 3,120.00
 """
 
+SAMPLE_TEXT_FULL = """Atlas Office Supplies LLC
+Invoice #: INV-10234
+PO Number: PO-55219
+Date: 03/14/2026
+Due Date: 04/13/2026
+
+Bill To:
+Yiguang Ma
+
+Description               Amount
+Standing desks x4         $980.00
+Ergonomic chairs x2       $268.50
+
+Subtotal: $1,150.00
+Tax: $98.50
+Total Due: $1,248.50
+"""
+
 
 def test_parses_vendor_and_invoice_number():
     record = parse_fields(SAMPLE_TEXT_USD, "test.pdf", used_ocr=False)
@@ -76,3 +94,34 @@ def test_normalize_date_various_formats():
     assert _normalize_date("2026-03-14") == "2026-03-14"
     assert _normalize_date("January 5, 2026") == "2026-01-05"
     assert _normalize_date(None) is None
+
+
+def test_parses_po_number():
+    record = parse_fields(SAMPLE_TEXT_FULL, "test.pdf", used_ocr=False)
+    assert record.po_number == "PO-55219"
+
+
+def test_parses_due_date():
+    record = parse_fields(SAMPLE_TEXT_FULL, "test.pdf", used_ocr=False)
+    assert record.due_date == "2026-04-13"
+
+
+def test_parses_subtotal_and_tax():
+    record = parse_fields(SAMPLE_TEXT_FULL, "test.pdf", used_ocr=False)
+    assert record.subtotal == "$1,150.00"
+    assert record.tax_amount == "$98.50"
+
+
+def test_missing_optional_fields_do_not_affect_status():
+    record = parse_fields(SAMPLE_TEXT_USD, "test.pdf", used_ocr=False)
+    assert record.status == "ok"
+    assert record.po_number is None
+    assert record.due_date is None
+    assert record.subtotal is None
+    assert record.tax_amount is None
+
+
+def test_po_number_not_falsely_matched_in_ordinary_text():
+    text = "Some Vendor Corp\nThank you for your continued support and cooperation."
+    record = parse_fields(text, "messy.pdf", used_ocr=False)
+    assert record.po_number is None

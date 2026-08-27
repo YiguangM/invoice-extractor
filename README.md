@@ -1,9 +1,10 @@
 # Invoice & Receipt Data Extractor
 
-Automatically pull structured data (vendor, invoice number, date, total) out
-of a folder of invoice PDFs — digital **or scanned** — and log it into a
-clean, color-coded Excel report. Built to demonstrate the kind of
-document-automation / RPA workflow used in real finance and ops teams.
+Automatically pull structured data (vendor, invoice/PO number, dates,
+subtotal, tax, and total) out of a folder of invoice PDFs — digital **or
+scanned** — and log it into a clean, color-coded Excel report. Built to
+demonstrate the kind of document-automation / RPA workflow used in real
+finance and ops teams.
 
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
@@ -22,7 +23,8 @@ no manual data entry.
 - **Falls back to OCR** (`pytesseract` + `pdf2image`) automatically when a PDF
   has little or no embedded text — i.e. scanned documents
 - **Parses key fields** with a set of regex heuristics: vendor name, invoice
-  number, date (normalized to `YYYY-MM-DD`), total amount, and currency
+  number, PO number, invoice date and due date (normalized to `YYYY-MM-DD`),
+  subtotal, tax, total amount, and currency
 - **Flags confidence**: each row is marked `ok`, `partial` (some fields
   missing), or `failed`, so nothing gets silently mis-extracted
 - **Writes a styled Excel report** with a color-coded status column and a
@@ -33,12 +35,12 @@ no manual data entry.
 Running the tool on the 4 sample invoices in `sample_invoices/` (including
 one simulated scanned receipt) produces:
 
-| File | Vendor | Invoice # | Date | Total | OCR Used | Status |
-|---|---|---|---|---|---|---|
-| invoice_atlas_supplies.pdf | Atlas Office Supplies LLC | INV-10234 | 2026-03-14 | $1,248.50 | No | ok |
-| invoice_northwind_cloud.pdf | Northwind Cloud Services | NW-2026-0091 | 2026-02-01 | $542.00 | No | ok |
-| invoice_dubai_print.pdf | Dubai Print & Design Co. | DPD-8871 | 2026-01-05 | AED 3,120.00 | No | ok |
-| invoice_scanned_receipt.pdf | Dubai Print & Design Co. | DPD-8871 | 2026-01-05 | AED 3,120.00 | **Yes** | ok |
+| File | Vendor | Invoice # | PO # | Date | Due Date | Subtotal | Tax | Total | OCR Used | Status |
+|---|---|---|---|---|---|---|---|---|---|---|
+| invoice_atlas_supplies.pdf | Atlas Office Supplies LLC | INV-10234 | PO-55219 | 2026-03-14 | 2026-04-13 | $1,150.00 | $98.50 | $1,248.50 | No | ok |
+| invoice_northwind_cloud.pdf | Northwind Cloud Services | NW-2026-0091 | PO-88012 | 2026-02-01 | 2026-03-03 | $500.00 | $42.00 | $542.00 | No | ok |
+| invoice_dubai_print.pdf | Dubai Print & Design Co. | DPD-8871 | PO-3390 | 2026-01-05 | 2026-02-04 | AED 2,970.00 | AED 150.00 | AED 3,120.00 | No | ok |
+| invoice_scanned_receipt.pdf | Dubai Print & Design Co. | DPD-8871 | — | 2026-01-05 | — | — | — | AED 3,120.00 | **Yes** | ok |
 
 ## Quick start
 

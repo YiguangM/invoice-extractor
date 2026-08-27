@@ -35,7 +35,11 @@ class InvoiceRecord:
     file_name: str
     vendor: Optional[str] = None
     invoice_number: Optional[str] = None
+    po_number: Optional[str] = None
     invoice_date: Optional[str] = None
+    due_date: Optional[str] = None
+    subtotal: Optional[str] = None
+    tax_amount: Optional[str] = None
     total_amount: Optional[str] = None
     currency: Optional[str] = None
     used_ocr: bool = False
@@ -90,10 +94,16 @@ def _ocr_pdf(pdf_path: Path) -> str:
 # Field parsing
 # ---------------------------------------------------------------------------
 
-_DATE_PATTERNS = [
-    r"\b(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})\b",
-    r"\b(\d{4}-\d{2}-\d{2})\b",
-    r"\b([A-Z][a-z]{2,8}\.?\s+\d{1,2},?\s+\d{4})\b",  # e.g. January 5, 2026
+_DATE_SUBPATTERNS = [
+    r"\d{1,2}[/-]\d{1,2}[/-]\d{2,4}",
+    r"\d{4}-\d{2}-\d{2}",
+    r"[A-Z][a-z]{2,8}\.?\s+\d{1,2},?\s+\d{4}",  # e.g. January 5, 2026
+]
+
+_DATE_PATTERNS = [rf"\b({p})\b" for p in _DATE_SUBPATTERNS]
+
+_DUE_DATE_PATTERNS = [
+    rf"\b(?:due\s*date|payment\s*due|due\s*by)\s*[:\-]?\s*({p})" for p in _DATE_SUBPATTERNS
 ]
 
 _INVOICE_NUM_PATTERNS = [
@@ -101,9 +111,23 @@ _INVOICE_NUM_PATTERNS = [
     r"(?:receipt)\s*(?:#|no\.?|number)?\s*[:\-]?\s*([A-Z0-9\-]{3,20})",
 ]
 
+_PO_NUMBER_PATTERNS = [
+    r"\b(?:p\.?\s?o\.?|purchase\s*order)\s*(?:#|no\.?|number)?\s*[:\-]\s*([A-Z0-9][A-Z0-9\-]{2,19})",
+]
+
+_MONEY = r"((?:[$€£]|AED|USD|EUR|GBP)?\s?\d{1,3}(?:[,\.]\d{3})*(?:\.\d{2})?)"
+
 _TOTAL_PATTERNS = [
-    r"(?:grand\s*total|total\s*due|amount\s*due|total)\s*[:\-]?\s*"
-    r"((?:[$€£]|AED|USD|EUR|GBP)?\s?\d{1,3}(?:[,\.]\d{3})*(?:\.\d{2})?)",
+    # \b keeps this from matching "total" inside "Subtotal"
+    rf"\b(?:grand\s*total|total\s*due|amount\s*due|total)\s*[:\-]?\s*{_MONEY}",
+]
+
+_SUBTOTAL_PATTERNS = [
+    rf"\bsub[\s\-]?total\s*[:\-]?\s*{_MONEY}",
+]
+
+_TAX_PATTERNS = [
+    rf"\b(?:sales\s*tax|vat|gst|tax)\s*(?:\(\d{{1,2}}(?:\.\d+)?%\))?\s*[:\-]?\s*{_MONEY}",
 ]
 
 _CURRENCY_SYMBOLS = {"$": "USD", "€": "EUR", "£": "GBP", "AED": "AED"}
@@ -167,8 +191,12 @@ def parse_fields(text: str, file_name: str, used_ocr: bool) -> InvoiceRecord:
 
     record.vendor = _guess_vendor(text)
     record.invoice_number = _search_first(_INVOICE_NUM_PATTERNS, text)
+    record.po_number = _search_first(_PO_NUMBER_PATTERNS, text)
     raw_date = _search_first(_DATE_PATTERNS, text)
     record.invoice_date = _normalize_date(raw_date)
+    record.due_date = _normalize_date(_search_first(_DUE_DATE_PATTERNS, text))
+    record.subtotal = _search_first(_SUBTOTAL_PATTERNS, text)
+    record.tax_amount = _search_first(_TAX_PATTERNS, text)
     record.total_amount = _search_first(_TOTAL_PATTERNS, text)
     record.currency = _guess_currency(record.total_amount, text)
 
