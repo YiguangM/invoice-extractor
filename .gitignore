@@ -13,3 +13,7 @@ output/*.xlsx
 .DS_Store
 .idea/
 .vscode/
+
+# Debug output from run_app.bat testing
+run_app_stdout.log
+run_app_stderr.log
